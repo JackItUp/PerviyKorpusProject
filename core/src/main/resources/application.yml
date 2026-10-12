@@ -9,6 +9,11 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  jackson:
+    datatype:
+      enum:
+        # {"rating": 1} — ошибка 400, а не HARD по индексу
+        fail-on-numbers-for-enums: true
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
     # Без явного контекста Liquibase выполнил бы и демо-данные (context="demo").

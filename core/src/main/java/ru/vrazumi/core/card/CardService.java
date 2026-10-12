@@ -32,6 +32,12 @@ public class CardService {
         .toList();
   }
 
+  /** Карточка для других фич (оценки). Бросает 404, если карточки нет. */
+  @Transactional(readOnly = true)
+  public Card getExisting(Long cardId) {
+    return cardRepository.findById(cardId).orElseThrow(() -> new CardNotFoundException(cardId));
+  }
+
   /** Карточки колоды в порядке добавления для других фич. Существование колоды не проверяет. */
   @Transactional(readOnly = true)
   public List<Card> getCardsInOrder(Long deckId) {

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- История ответов: каждая оценка — новая строка, ничего не перезаписывается -->
+    <changeSet id="003-create-review" author="vrazumi">
+        <createTable tableName="review">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_review"/>
+            </column>
+            <column name="card_id" type="bigint">
+                <constraints nullable="false"
+                             foreignKeyName="fk_review_card"
+                             referencedTableName="card"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="rating" type="varchar(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reviewed_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <sql>
+            ALTER TABLE review
+                ADD CONSTRAINT ck_review_rating CHECK (rating IN ('DONT_KNOW', 'HARD', 'KNOW', 'EASY'))
+        </sql>
+
+        <createIndex tableName="review" indexName="idx_review_card_id_reviewed_at">
+            <column name="card_id"/>
+            <column name="reviewed_at"/>
+        </createIndex>
+
+        <rollback>
+            <dropTable tableName="review"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
