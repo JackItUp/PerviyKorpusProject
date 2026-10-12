@@ -1,3 +1,10 @@
 * text=auto eol=lf
+
+# Скрипты для Linux (Docker, CI) — всегда LF, иначе не запустятся
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Скрипты Windows
 *.cmd text eol=crlf
+
 *.jar binary

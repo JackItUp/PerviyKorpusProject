@@ -1,53 +1,71 @@
 # Вразуми — Web Anki
 
-Веб-приложение для изучения карточек (аналог Anki). Пользователь создаёт колоду, добавляет карточки «вопрос — ответ», проходит их в режиме изучения и после каждого ответа ставит оценку: «Не знаю», «Трудно», «Знаю» или «Легко».
+Веб-приложение для изучения карточек: колоды «вопрос — ответ», режим изучения и самооценка каждого ответа.
 
-В этом репозитории лежит **Java-ядро бэкенда** (`core/`). Это спринт 1. Позже рядом появится Python-сервис аналитики.
-
-## Стек
-
-- JDK 25, Spring Boot 4.1 (Web MVC, Bean Validation, Data JPA, Actuator)
-- PostgreSQL 18, Liquibase (changelog в XML), Hibernate в режиме `validate`
-- MapStruct, Lombok
-- springdoc-openapi 3 (Swagger UI)
-- JUnit 5, Mockito, Testcontainers
-- Docker, Docker Compose, GitHub Actions, Spotless (google-java-format)
-
-## Структура
+## Структура репозитория
 
 ```
 /
-├── core/                         # Java-ядро
-│   └── src/main/java/ru/vrazumi/core
-│       ├── deck/                 # колоды
-│       ├── card/                 # карточки
-│       ├── study/                # режим изучения
-│       ├── review/               # оценки ответов
-│       └── common/               # ошибки, CORS, OpenAPI
-├── docker-compose.yml
+├── backend/
+│   ├── core/              # Java-ядро (Spring Boot)
+│   └── analytics/         # Python-сервис аналитики — появится позже
+├── frontend/              # фронтенд — появится позже
+├── docs/                  # документация проекта
+├── .github/
+│   ├── workflows/         # CI: backend-core-ci.yml
+│   └── CODEOWNERS
+├── docker-compose.yml     # запуск всего проекта
 ├── .env.example
-└── .github/workflows/core-ci.yml
+├── .gitattributes
+├── .gitignore
+└── README.md
 ```
 
-Пакеты разложены по фичам: это будущие модули модульного монолита. Фича обращается к другой фиче только через её сервис.
+## Быстрый запуск
 
-## Запуск
-
-### Всё в Docker
+Нужен Docker с Docker Compose.
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Без `.env` тоже запустится со значениями по умолчанию (пользователь и пароль БД `vrazumi`). Это годится только для локальной разработки.
+Без `.env` проект тоже запустится со значениями по умолчанию (пользователь и пароль БД `vrazumi`). Это годится только для локальной разработки.
 
 - API: http://localhost:8080/api
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - OpenAPI-спецификация: http://localhost:8080/v3/api-docs
 - Health: http://localhost:8080/actuator/health
 
-### Локальная разработка (приложение из IDE)
+Остановить: `docker compose down`. Начать с чистой базы: `docker compose down -v`.
+
+## Бэкенд (core)
+
+Код лежит в `backend/core/`.
+
+### Стек
+
+- JDK 25, Spring Boot 4.1 (Web MVC, Bean Validation, Data JPA, Actuator)
+- PostgreSQL 18, Liquibase (changelog в XML), Hibernate в режиме `validate`
+- MapStruct, Lombok
+- springdoc-openapi 3 (Swagger UI)
+- JUnit 5, Mockito, Testcontainers
+- Docker, GitHub Actions, Spotless (google-java-format)
+
+### Устройство
+
+```
+backend/core/src/main/java/ru/vrazumi/core
+├── deck/      # колоды
+├── card/      # карточки
+├── study/     # режим изучения
+├── review/    # оценки ответов
+└── common/    # ошибки, CORS, OpenAPI
+```
+
+Пакеты разложены по фичам: это будущие модули модульного монолита. Фича обращается к другой фиче только через её сервис.
+
+### Локальный запуск (приложение из IDE)
 
 ```bash
 docker compose up postgres
@@ -56,7 +74,7 @@ docker compose up postgres
 Затем запустите `ru.vrazumi.core.CoreApplication` из IDE или из консоли:
 
 ```bash
-cd core && ./mvnw spring-boot:run
+cd backend/core && ./mvnw spring-boot:run
 ```
 
 По умолчанию приложение подключается к `localhost:5432/vrazumi` (пользователь и пароль `vrazumi`). Параметры меняются переменными окружения `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
@@ -70,22 +88,20 @@ cd core && ./mvnw spring-boot:run
 
 Changeset выполняется один раз. Если база уже создана без демо-данных, они добавятся при первом запуске с `demo`.
 
-Начать с чистой базы: `docker compose down -v`.
-
 ### Тесты и линтер
 
 Нужны JDK 25 и запущенный Docker (для Testcontainers):
 
 ```bash
-cd core && ./mvnw spotless:check verify
+cd backend/core && ./mvnw spotless:check verify
 ```
 
-Отформатировать код: `./mvnw spotless:apply`.
+На Windows вместо `./mvnw` используйте `mvnw.cmd`. Отформатировать код: `./mvnw spotless:apply`.
 
 - `*Test`: юнит-тесты сервисов (Mockito) и тесты веб-слоя (`@WebMvcTest`), запускает Surefire.
 - `*IT`: интеграционные тесты на PostgreSQL в Testcontainers (миграции, сквозной сценарий, демо-данные), запускает Failsafe на фазе `verify`.
 
-## API
+### API
 
 > **Для фронтенда.** Базовый путь — **`/api`**. Формат JSON, даты в ISO-8601 UTC (`2026-10-01T09:30:00Z`).
 > Ошибки приходят в формате **`ProblemDetail`** (RFC 9457, `Content-Type: application/problem+json`).
@@ -110,7 +126,7 @@ cd core && ./mvnw spotless:check verify
 - `GET /api/decks/{id}/cards` и `/study`: карточки в порядке добавления. Пустая колода — `200`, а не ошибка.
 - `Location` новой карточки указывает на `/api/cards/{cardId}`. Эндпоинта `GET` для одной карточки в этом спринте нет.
 
-### Сценарий демо (curl)
+#### Сценарий демо (curl)
 
 ```bash
 # 1. Создать колоду
@@ -143,7 +159,7 @@ curl http://localhost:8080/api/decks
 
 > На Windows (cmd, PowerShell, Git Bash) curl может передать кириллицу из командной строки не в UTF-8, и сервер ответит 400 «не является корректным JSON». Сохраните тело в UTF-8 файл и отправьте его через `--data-binary @deck.json` или воспользуйтесь Swagger UI.
 
-### Формат ошибок
+#### Формат ошибок
 
 Ошибка валидации (400):
 
@@ -181,6 +197,12 @@ curl http://localhost:8080/api/decks
 
 Битый JSON и нечисловой id в пути (`/api/decks/abc`) тоже дают 400. Непредвиденные ошибки дают 500 без подробностей в ответе, стектрейс пишется в лог.
 
-## CI
+### CI
 
-`.github/workflows/core-ci.yml` запускается на push и pull request, если изменилось что-то в `core/`. Workflow выполняет `spotless:check` и `mvn verify` на JDK 25 (Temurin), включая тесты с Testcontainers.
+Workflow `Backend Core CI` (`.github/workflows/backend-core-ci.yml`) запускается на push и pull request, если изменилось что-то в `backend/core/`. Он выполняет `spotless:check` и `mvn verify` на JDK 25 (Temurin), включая тесты с Testcontainers.
+
+## Как работаем с репозиторием
+
+- Ветки: `feature/<номер-задачи>-<кратко>`, например `feature/42-deck-list`.
+- В `main` изменения попадают только через Pull Request: зелёный CI и одобрение ревьюера.
+- Владельцы частей репозитория указаны в `.github/CODEOWNERS`, они автоматически назначаются ревьюерами.

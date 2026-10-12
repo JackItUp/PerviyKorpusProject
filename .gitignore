@@ -1,5 +1,27 @@
-.env
+# IDE
 .idea/
-.vscode/
 *.iml
+.vscode/
+
+# Java / Maven
+target/
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# Python (на будущее)
+__pycache__/
+.venv/
+*.pyc
+
+# Node (на будущее)
+node_modules/
+dist/
+
+# Секреты и окружение
+.env
+
+# Логи
+*.log
+
+# ОС
 .DS_Store
+Thumbs.db

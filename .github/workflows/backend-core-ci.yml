@@ -1,20 +1,20 @@
-name: core-ci
+name: Backend Core CI
 
 on:
   push:
     paths:
-      - "core/**"
-      - ".github/workflows/core-ci.yml"
+      - "backend/core/**"
+      - ".github/workflows/backend-core-ci.yml"
   pull_request:
     paths:
-      - "core/**"
-      - ".github/workflows/core-ci.yml"
+      - "backend/core/**"
+      - ".github/workflows/backend-core-ci.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: core-ci-${{ github.ref }}
+  group: backend-core-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: core
+        working-directory: backend/core
     steps:
       - uses: actions/checkout@v5
 
@@ -31,7 +31,7 @@ jobs:
           distribution: temurin
           java-version: "25"
           cache: maven
-          cache-dependency-path: core/pom.xml
+          cache-dependency-path: backend/core/pom.xml
 
       - name: Линтер (Spotless)
         run: ./mvnw -B spotless:check
@@ -45,5 +45,5 @@ jobs:
         with:
           name: test-reports
           path: |
-            core/target/surefire-reports
-            core/target/failsafe-reports
+            backend/core/target/surefire-reports
+            backend/core/target/failsafe-reports
