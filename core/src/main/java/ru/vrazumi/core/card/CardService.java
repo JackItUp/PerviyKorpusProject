@@ -31,4 +31,10 @@ public class CardService {
         .map(cardMapper::toResponse)
         .toList();
   }
+
+  /** Карточки колоды в порядке добавления для других фич. Существование колоды не проверяет. */
+  @Transactional(readOnly = true)
+  public List<Card> getCardsInOrder(Long deckId) {
+    return cardRepository.findByDeckIdOrderByIdAsc(deckId);
+  }
 }
