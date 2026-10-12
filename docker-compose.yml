@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-vrazumi}
+      POSTGRES_USER: ${DB_USER:-vrazumi}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-vrazumi}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # Начиная с PostgreSQL 18 данные лежат в /var/lib/postgresql/<версия>/docker
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  core:
+    build: ./core
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-vrazumi}
+      DB_USER: ${DB_USER:-vrazumi}
+      DB_PASSWORD: ${DB_PASSWORD:-vrazumi}
+      LIQUIBASE_CONTEXTS: ${LIQUIBASE_CONTEXTS:-default}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
