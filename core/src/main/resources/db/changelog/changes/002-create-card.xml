@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="002-create-card" author="vrazumi">
+        <createTable tableName="card">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_card"/>
+            </column>
+            <column name="deck_id" type="bigint">
+                <constraints nullable="false"
+                             foreignKeyName="fk_card_deck"
+                             referencedTableName="deck"
+                             referencedColumnNames="id"/>
+            </column>
+            <!-- Пока есть только NORMAL; позже: ввод ответа, cloze, multiple choice -->
+            <column name="type" type="varchar(30)" defaultValue="NORMAL">
+                <constraints nullable="false"/>
+            </column>
+            <column name="question" type="varchar(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="answer" type="varchar(2000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <createIndex tableName="card" indexName="idx_card_deck_id">
+            <column name="deck_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

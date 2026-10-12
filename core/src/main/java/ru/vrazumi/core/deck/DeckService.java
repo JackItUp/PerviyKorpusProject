@@ -22,20 +22,32 @@ public class DeckService {
 
   @Transactional(readOnly = true)
   public List<DeckResponse> findAll() {
-    // Количество карточек появится вместе с карточками
-    return deckRepository.findAllByOrderByCreatedAtDescIdDesc().stream()
-        .map(deck -> deckMapper.toResponse(deck, 0))
-        .toList();
+    return deckRepository.findAllWithCardCount().stream().map(this::toResponse).toList();
   }
 
   @Transactional(readOnly = true)
   public DeckResponse findById(Long deckId) {
-    return deckMapper.toResponse(getExisting(deckId), 0);
+    return deckRepository
+        .findWithCardCountById(deckId)
+        .map(this::toResponse)
+        .orElseThrow(() -> new DeckNotFoundException(deckId));
   }
 
   /** Колода для других фич (карточки, изучение). Бросает 404, если колоды нет. */
   @Transactional(readOnly = true)
   public Deck getExisting(Long deckId) {
     return deckRepository.findById(deckId).orElseThrow(() -> new DeckNotFoundException(deckId));
+  }
+
+  /** Проверка существования колоды без загрузки. Бросает 404, если колоды нет. */
+  @Transactional(readOnly = true)
+  public void ensureExists(Long deckId) {
+    if (!deckRepository.existsById(deckId)) {
+      throw new DeckNotFoundException(deckId);
+    }
+  }
+
+  private DeckResponse toResponse(DeckWithCardCount row) {
+    return deckMapper.toResponse(row.deck(), row.cardCount());
   }
 }
