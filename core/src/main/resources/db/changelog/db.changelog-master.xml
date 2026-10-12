@@ -9,4 +9,7 @@
     <include file="changes/002-create-card.xml" relativeToChangelogFile="true"/>
     <include file="changes/003-create-review.xml" relativeToChangelogFile="true"/>
 
+    <!-- Только с контекстом demo -->
+    <include file="changes/004-demo-data.xml" relativeToChangelogFile="true"/>
+
 </databaseChangeLog>

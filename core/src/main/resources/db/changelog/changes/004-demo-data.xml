@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Демо-данные: 2 колоды по 5 карточек.
+        Выполняются только с контекстом demo: spring.liquibase.contexts=demo (LIQUIBASE_CONTEXTS=demo).
+    -->
+    <changeSet id="004-demo-data" author="vrazumi" context="demo">
+        <insert tableName="deck">
+            <column name="title" value="Английские неправильные глаголы"/>
+            <column name="description" value="Три формы самых частых неправильных глаголов"/>
+            <column name="created_at" valueComputed="now()"/>
+            <column name="updated_at" valueComputed="now()"/>
+        </insert>
+        <insert tableName="deck">
+            <column name="title" value="Столицы мира"/>
+            <column name="description" value="Страна — столица"/>
+            <column name="created_at" valueComputed="now()"/>
+            <column name="updated_at" valueComputed="now()"/>
+        </insert>
+
+        <sql>
+            INSERT INTO card (deck_id, type, question, answer, created_at, updated_at)
+            SELECT d.id, 'NORMAL', v.question, v.answer, now(), now()
+            FROM deck d
+            JOIN (VALUES
+                (1, 'go', 'went, gone'),
+                (2, 'be', 'was/were, been'),
+                (3, 'take', 'took, taken'),
+                (4, 'see', 'saw, seen'),
+                (5, 'write', 'wrote, written')
+            ) AS v(pos, question, answer) ON true
+            WHERE d.title = 'Английские неправильные глаголы'
+            ORDER BY v.pos;
+
+            INSERT INTO card (deck_id, type, question, answer, created_at, updated_at)
+            SELECT d.id, 'NORMAL', v.question, v.answer, now(), now()
+            FROM deck d
+            JOIN (VALUES
+                (1, 'Франция', 'Париж'),
+                (2, 'Япония', 'Токио'),
+                (3, 'Канада', 'Оттава'),
+                (4, 'Австралия', 'Канберра'),
+                (5, 'Бразилия', 'Бразилиа')
+            ) AS v(pos, question, answer) ON true
+            WHERE d.title = 'Столицы мира'
+            ORDER BY v.pos;
+        </sql>
+
+        <rollback>
+            <sql>
+                DELETE FROM card WHERE deck_id IN
+                    (SELECT id FROM deck WHERE title IN ('Английские неправильные глаголы', 'Столицы мира'));
+                DELETE FROM deck WHERE title IN ('Английские неправильные глаголы', 'Столицы мира');
+            </sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
