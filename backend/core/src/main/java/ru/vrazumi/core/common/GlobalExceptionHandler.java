@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -35,6 +37,44 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ProblemDetail handleNotFound(NotFoundException ex) {
     ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     problem.setTitle("Не найдено");
+    return problem;
+  }
+
+  @ExceptionHandler(UnauthorizedException.class)
+  public ProblemDetail handleUnauthorized(UnauthorizedException ex) {
+    return unauthorized(ex.getMessage());
+  }
+
+  /** Например, контроллер запросил текущего пользователя, а токена нет. */
+  @ExceptionHandler(AuthenticationException.class)
+  public ProblemDetail handleAuthentication(AuthenticationException ex) {
+    return unauthorized("Требуется авторизация: передайте access-токен.");
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+    ProblemDetail problem =
+        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Недостаточно прав.");
+    problem.setTitle("Доступ запрещён");
+    return problem;
+  }
+
+  @ExceptionHandler(BadRequestException.class)
+  public ProblemDetail handleBadRequest(BadRequestException ex) {
+    ProblemDetail problem = badRequest(ex.getMessage());
+    if (ex.getField() != null) {
+      problem.setProperty(
+          ERRORS_PROPERTY, List.of(new FieldViolation(ex.getField(), ex.getMessage())));
+    }
+    return problem;
+  }
+
+  @ExceptionHandler(ConflictException.class)
+  public ProblemDetail handleConflict(ConflictException ex) {
+    ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    problem.setTitle("Конфликт");
+    problem.setProperty(
+        ERRORS_PROPERTY, List.of(new FieldViolation(ex.getField(), ex.getMessage())));
     return problem;
   }
 
@@ -113,17 +153,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return handleExceptionInternal(ex, problem, headers, status, request);
   }
 
+  private static ProblemDetail unauthorized(String detail) {
+    ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, detail);
+    problem.setTitle("Не авторизован");
+    return problem;
+  }
+
   private static ProblemDetail badRequest(String detail) {
     ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     problem.setTitle("Некорректный запрос");
     return problem;
   }
 
+  /** Путь к полю в том же виде, что у Bean Validation: {@code options[1].text}. */
   private static String fieldPath(JacksonException ex) {
-    return ex.getPath().stream()
-        .map(
-            ref ->
-                ref.getPropertyName() != null ? ref.getPropertyName() : "[" + ref.getIndex() + "]")
-        .collect(Collectors.joining("."));
+    StringBuilder path = new StringBuilder();
+    for (JacksonException.Reference ref : ex.getPath()) {
+      if (ref.getPropertyName() != null) {
+        path.append(path.isEmpty() ? "" : ".").append(ref.getPropertyName());
+      } else {
+        path.append('[').append(ref.getIndex()).append(']');
+      }
+    }
+    return path.toString();
   }
 }

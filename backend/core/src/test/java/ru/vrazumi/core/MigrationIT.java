@@ -27,7 +27,18 @@ class MigrationIT extends AbstractIntegrationTest {
     List<String> ids =
         jdbc.queryForList("SELECT id FROM databasechangelog ORDER BY orderexecuted", String.class);
 
-    assertThat(ids).containsExactly("001-create-deck", "002-create-card", "003-create-review");
+    assertThat(ids)
+        .containsExactly(
+            "001-create-deck",
+            "002-create-card",
+            "003-create-review",
+            "005-create-app-user",
+            "006-create-refresh-token",
+            "007-deck-owner-column",
+            "007-deck-owner-required",
+            "008-review-user",
+            "009-card-options",
+            "010-deck-group");
   }
 
   @Test
@@ -64,8 +75,10 @@ class MigrationIT extends AbstractIntegrationTest {
     assertThatThrownBy(
             () ->
                 jdbc.update(
-                    "INSERT INTO review (card_id, rating, reviewed_at) VALUES (?, 'SUPER', now())",
-                    cardId))
+                    "INSERT INTO review (card_id, user_id, rating, reviewed_at)"
+                        + " SELECT ?, owner_id, 'SUPER', now() FROM deck WHERE id = ?",
+                    cardId,
+                    deckId))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasMessageContaining("ck_review_rating");
   }
@@ -81,10 +94,28 @@ class MigrationIT extends AbstractIntegrationTest {
         .hasMessageContaining("fk_card_deck");
   }
 
+  @Test
+  void deckRequiresOwner() {
+    assertThatThrownBy(
+            () ->
+                jdbc.update(
+                    "INSERT INTO deck (title, created_at, updated_at)"
+                        + " VALUES ('Колода', now(), now())"))
+        .isInstanceOf(DataIntegrityViolationException.class)
+        .hasMessageContaining("owner_id");
+  }
+
   private Long insertDeck() {
+    Long ownerId =
+        jdbc.queryForObject(
+            "INSERT INTO app_user (username, email, password_hash, created_at, updated_at)"
+                + " VALUES ('owner', 'owner@example.com', 'x', now(), now()) RETURNING id",
+            Long.class);
     return jdbc.queryForObject(
-        "INSERT INTO deck (title, created_at, updated_at) VALUES ('Колода', now(), now())"
+        "INSERT INTO deck (title, owner_id, created_at, updated_at)"
+            + " VALUES ('Колода', ?, now(), now())"
             + " RETURNING id",
-        Long.class);
+        Long.class,
+        ownerId);
   }
 }

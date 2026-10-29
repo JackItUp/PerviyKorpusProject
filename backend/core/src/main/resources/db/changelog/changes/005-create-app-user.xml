@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Таблица называется app_user: слово user зарезервировано в PostgreSQL -->
+    <changeSet id="005-create-app-user" author="vrazumi">
+        <createTable tableName="app_user">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_app_user"/>
+            </column>
+            <column name="username" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <!-- Хранится в нижнем регистре -->
+            <column name="email" type="varchar(254)">
+                <constraints nullable="false" unique="true" uniqueConstraintName="uq_app_user_email"/>
+            </column>
+            <column name="password_hash" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Имя пользователя уникально без учёта регистра, но хранится как ввёл пользователь -->
+        <sql>CREATE UNIQUE INDEX uq_app_user_username_lower ON app_user (lower(username))</sql>
+
+        <rollback>
+            <dropTable tableName="app_user"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -10,6 +10,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import ru.vrazumi.core.auth.CurrentUserId;
 import ru.vrazumi.core.study.dto.StudySessionResponse;
 
 @Tag(name = "Изучение")
@@ -28,7 +29,8 @@ public class StudyController {
       description = "Колоды нет",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @GetMapping("/api/decks/{deckId}/study")
-  public StudySessionResponse getStudySession(@PathVariable Long deckId) {
-    return studyService.getStudySession(deckId);
+  public StudySessionResponse getStudySession(
+      @PathVariable Long deckId, @CurrentUserId Long userId) {
+    return studyService.getStudySession(deckId, userId);
   }
 }

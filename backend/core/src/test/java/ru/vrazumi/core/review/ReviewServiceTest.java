@@ -24,8 +24,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.vrazumi.core.card.Card;
 import ru.vrazumi.core.card.CardNotFoundException;
 import ru.vrazumi.core.card.CardService;
+import ru.vrazumi.core.card.CardType;
+import ru.vrazumi.core.common.BadRequestException;
 import ru.vrazumi.core.review.dto.CreateReviewRequest;
 import ru.vrazumi.core.review.dto.ReviewResponse;
+import ru.vrazumi.core.user.User;
+import ru.vrazumi.core.user.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceTest {
@@ -34,9 +38,12 @@ class ReviewServiceTest {
 
   @Mock private ReviewRepository reviewRepository;
   @Mock private CardService cardService;
+  @Mock private UserService userService;
   private ReviewService reviewService;
 
   private final AtomicLong ids = new AtomicLong(100);
+  private static final long USER = 5L;
+  private final User user = new User();
 
   @BeforeEach
   void setUp() {
@@ -45,6 +52,7 @@ class ReviewServiceTest {
             reviewRepository,
             Mappers.getMapper(ReviewMapper.class),
             cardService,
+            userService,
             Clock.fixed(NOW, ZoneOffset.UTC));
   }
 
@@ -52,14 +60,15 @@ class ReviewServiceTest {
   @EnumSource(Rating.class)
   void createSavesReviewWithEveryRating(Rating rating) {
     Card card = card(10L);
-    when(cardService.getExisting(10L)).thenReturn(card);
+    when(cardService.getExisting(10L, USER)).thenReturn(card);
     stubSave();
 
-    ReviewResponse response = reviewService.create(10L, new CreateReviewRequest(rating));
+    ReviewResponse response = reviewService.create(10L, new CreateReviewRequest(rating), USER);
 
     ArgumentCaptor<Review> saved = ArgumentCaptor.forClass(Review.class);
     verify(reviewRepository).save(saved.capture());
     assertThat(saved.getValue().getCard()).isSameAs(card);
+    assertThat(saved.getValue().getUser()).isSameAs(user);
     assertThat(saved.getValue().getRating()).isEqualTo(rating);
     assertThat(saved.getValue().getReviewedAt())
         .isEqualTo(Instant.parse("2026-10-01T09:40:00.123456Z"));
@@ -69,11 +78,11 @@ class ReviewServiceTest {
 
   @Test
   void repeatedReviewCreatesNewRecord() {
-    when(cardService.getExisting(10L)).thenReturn(card(10L));
+    when(cardService.getExisting(10L, USER)).thenReturn(card(10L));
     stubSave();
 
-    ReviewResponse first = reviewService.create(10L, new CreateReviewRequest(Rating.HARD));
-    ReviewResponse second = reviewService.create(10L, new CreateReviewRequest(Rating.EASY));
+    ReviewResponse first = reviewService.create(10L, new CreateReviewRequest(Rating.HARD), USER);
+    ReviewResponse second = reviewService.create(10L, new CreateReviewRequest(Rating.EASY), USER);
 
     ArgumentCaptor<Review> saved = ArgumentCaptor.forClass(Review.class);
     verify(reviewRepository, times(2)).save(saved.capture());
@@ -83,16 +92,29 @@ class ReviewServiceTest {
   }
 
   @Test
-  void createThrowsNotFoundForMissingCard() {
-    when(cardService.getExisting(99L)).thenThrow(new CardNotFoundException(99L));
+  void selfReviewIsRejectedForCardsCheckedByServer() {
+    Card card = card(10L);
+    card.setType(CardType.MULTIPLE_CHOICE);
+    when(cardService.getExisting(10L, USER)).thenReturn(card);
 
-    assertThatThrownBy(() -> reviewService.create(99L, new CreateReviewRequest(Rating.KNOW)))
+    assertThatThrownBy(() -> reviewService.create(10L, new CreateReviewRequest(Rating.KNOW), USER))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("/api/cards/10/answer");
+    verifyNoInteractions(reviewRepository);
+  }
+
+  @Test
+  void createThrowsNotFoundForMissingCard() {
+    when(cardService.getExisting(99L, USER)).thenThrow(new CardNotFoundException(99L));
+
+    assertThatThrownBy(() -> reviewService.create(99L, new CreateReviewRequest(Rating.KNOW), USER))
         .isInstanceOf(CardNotFoundException.class)
         .hasMessageContaining("99");
     verifyNoInteractions(reviewRepository);
   }
 
   private void stubSave() {
+    when(userService.getReference(USER)).thenReturn(user);
     when(reviewRepository.save(any(Review.class)))
         .thenAnswer(
             invocation -> {

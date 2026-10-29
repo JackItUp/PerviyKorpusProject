@@ -13,18 +13,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import ru.vrazumi.core.DefaultTestUserConfig;
+import ru.vrazumi.core.WebLayerTest;
 import ru.vrazumi.core.card.dto.CardResponse;
 import ru.vrazumi.core.deck.DeckNotFoundException;
 
-@WebMvcTest(CardController.class)
+@WebLayerTest(CardController.class)
 class CardControllerTest {
+
+  private static final long USER = DefaultTestUserConfig.USER_ID;
 
   private static final Instant NOW = Instant.parse("2026-10-01T09:35:00Z");
 
@@ -33,7 +37,7 @@ class CardControllerTest {
 
   @Test
   void createReturns201WithLocation() throws Exception {
-    when(cardService.create(eq(1L), any())).thenReturn(card(10L, "go"));
+    when(cardService.create(eq(1L), any(), eq(USER))).thenReturn(card(10L, "go"));
 
     postCard(1, "{\"question\": \" go \", \"answer\": \"went, gone\"}")
         .andExpect(status().isCreated())
@@ -46,7 +50,7 @@ class CardControllerTest {
 
   @Test
   void createAcceptsTextOf2000Chars() throws Exception {
-    when(cardService.create(eq(1L), any())).thenReturn(card(10L, "x".repeat(2000)));
+    when(cardService.create(eq(1L), any(), eq(USER))).thenReturn(card(10L, "x".repeat(2000)));
 
     postCard(1, cardJson("x".repeat(2000), "y".repeat(2000))).andExpect(status().isCreated());
   }
@@ -88,7 +92,7 @@ class CardControllerTest {
 
   @Test
   void createReturns404ForMissingDeck() throws Exception {
-    when(cardService.create(eq(99L), any())).thenThrow(new DeckNotFoundException(99L));
+    when(cardService.create(eq(99L), any(), eq(USER))).thenThrow(new DeckNotFoundException(99L));
 
     postCard(99, cardJson("go", "went"))
         .andExpect(status().isNotFound())
@@ -107,7 +111,7 @@ class CardControllerTest {
 
   @Test
   void findByDeckReturnsCards() throws Exception {
-    when(cardService.findByDeck(1L)).thenReturn(List.of(card(10L, "go"), card(11L, "be")));
+    when(cardService.findByDeck(1L, USER)).thenReturn(List.of(card(10L, "go"), card(11L, "be")));
 
     mvc.perform(get("/api/decks/1/cards"))
         .andExpect(status().isOk())
@@ -118,7 +122,7 @@ class CardControllerTest {
 
   @Test
   void findByDeckReturnsEmptyListForEmptyDeck() throws Exception {
-    when(cardService.findByDeck(1L)).thenReturn(List.of());
+    when(cardService.findByDeck(1L, USER)).thenReturn(List.of());
 
     mvc.perform(get("/api/decks/1/cards"))
         .andExpect(status().isOk())
@@ -127,7 +131,7 @@ class CardControllerTest {
 
   @Test
   void findByDeckReturns404ForMissingDeck() throws Exception {
-    when(cardService.findByDeck(99L)).thenThrow(new DeckNotFoundException(99L));
+    when(cardService.findByDeck(99L, USER)).thenThrow(new DeckNotFoundException(99L));
 
     mvc.perform(get("/api/decks/99/cards"))
         .andExpect(status().isNotFound())
@@ -137,6 +141,86 @@ class CardControllerTest {
   @Test
   void findByDeckRejectsNonNumericDeckId() throws Exception {
     mvc.perform(get("/api/decks/abc/cards")).andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void createAcceptsChoiceCard() throws Exception {
+    when(cardService.create(eq(1L), any(), eq(USER))).thenReturn(card(10L, "Столицы"));
+
+    postCard(
+            1,
+            choiceJson(
+                "{\"text\": \"Париж\", \"correct\": true}, {\"text\": \"Сидней\", \"correct\": false}"))
+        .andExpect(status().isCreated());
+  }
+
+  @Test
+  void createRejectsChoiceCardWithOneOption() throws Exception {
+    expectFieldError(
+        postCard(1, choiceJson("{\"text\": \"Париж\", \"correct\": true}")), "options");
+  }
+
+  @Test
+  void createRejectsChoiceCardWithElevenOptions() throws Exception {
+    String options =
+        String.join(
+            ", ",
+            IntStream.rangeClosed(1, 11)
+                .mapToObj(i -> "{\"text\": \"v%d\", \"correct\": true}".formatted(i))
+                .toList());
+    expectFieldError(postCard(1, choiceJson(options)), "options");
+  }
+
+  @Test
+  void createRejectsChoiceCardWithoutCorrectOption() throws Exception {
+    expectFieldError(postCard(1, choiceJson("{\"text\": \"a\"}, {\"text\": \"b\"}")), "options");
+  }
+
+  @Test
+  void createRejectsDuplicateOptionsIgnoringCase() throws Exception {
+    expectFieldError(
+        postCard(
+            1, choiceJson("{\"text\": \"Париж\", \"correct\": true}, {\"text\": \" париж \"}")),
+        "options");
+  }
+
+  @Test
+  void createRejectsBlankOptionText() throws Exception {
+    expectFieldError(
+        postCard(1, choiceJson("{\"text\": \"a\", \"correct\": true}, {\"text\": \"  \"}")),
+        "options[1].text");
+  }
+
+  @Test
+  void createRejectsAnswerOnChoiceCard() throws Exception {
+    expectFieldError(
+        postCard(
+            1,
+            "{\"type\": \"MULTIPLE_CHOICE\", \"question\": \"q\", \"answer\": \"a\","
+                + " \"options\": [{\"text\": \"a\", \"correct\": true}, {\"text\": \"b\"}]}"),
+        "answer");
+  }
+
+  @Test
+  void createRejectsOptionsOnNormalCard() throws Exception {
+    expectFieldError(
+        postCard(
+            1,
+            "{\"question\": \"go\", \"answer\": \"went\","
+                + " \"options\": [{\"text\": \"a\", \"correct\": true}]}"),
+        "options");
+  }
+
+  @Test
+  void createRejectsUnknownCardType() throws Exception {
+    postCard(1, "{\"type\": \"CLOZE\", \"question\": \"q\", \"answer\": \"a\"}")
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.errors[0].field").value("type"));
+  }
+
+  private static String choiceJson(String options) {
+    return "{\"type\": \"MULTIPLE_CHOICE\", \"question\": \"Столицы\", \"options\": [%s]}"
+        .formatted(options);
   }
 
   private ResultActions postCard(long deckId, String json) throws Exception {
@@ -160,6 +244,6 @@ class CardControllerTest {
   }
 
   private static CardResponse card(Long id, String question) {
-    return new CardResponse(id, 1L, CardType.NORMAL, question, "ответ", NOW, NOW);
+    return new CardResponse(id, 1L, CardType.NORMAL, question, "ответ", List.of(), NOW, NOW);
   }
 }

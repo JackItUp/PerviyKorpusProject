@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Колода принадлежит пользователю -->
+    <changeSet id="007-deck-owner-column" author="vrazumi">
+        <addColumn tableName="deck">
+            <column name="owner_id" type="bigint"/>
+        </addColumn>
+    </changeSet>
+
+    <!--
+        Демо-пользователь demo / demo-password получает демо-колоды.
+        Выполняется только с контекстом demo, до удаления колод без владельца.
+    -->
+    <changeSet id="007-demo-user" author="vrazumi" context="demo">
+        <sql>
+            INSERT INTO app_user (username, email, password_hash, created_at, updated_at)
+            SELECT 'demo', 'demo@vrazumi.local',
+                   '{bcrypt}$2a$10$0SqpRQgz0UTVY59EKdStY.5aUDukyHBs2tZKbagKRRgcXTWYqMbhW',
+                   now(), now()
+            WHERE NOT EXISTS (SELECT 1 FROM app_user WHERE lower(username) = 'demo');
+
+            UPDATE deck
+            SET owner_id = (SELECT id FROM app_user WHERE lower(username) = 'demo')
+            WHERE owner_id IS NULL;
+        </sql>
+        <rollback>
+            <sql>
+                UPDATE deck SET owner_id = NULL
+                WHERE owner_id = (SELECT id FROM app_user WHERE lower(username) = 'demo');
+            </sql>
+        </rollback>
+    </changeSet>
+
+    <!-- Колоды спринта 1 без владельца удаляются вместе с карточками и оценками -->
+    <changeSet id="007-deck-owner-required" author="vrazumi">
+        <sql>
+            DELETE FROM review WHERE card_id IN
+                (SELECT c.id FROM card c JOIN deck d ON d.id = c.deck_id WHERE d.owner_id IS NULL);
+            DELETE FROM card WHERE deck_id IN (SELECT id FROM deck WHERE owner_id IS NULL);
+            DELETE FROM deck WHERE owner_id IS NULL;
+        </sql>
+
+        <addNotNullConstraint tableName="deck" columnName="owner_id" columnDataType="bigint"/>
+        <addForeignKeyConstraint baseTableName="deck" baseColumnNames="owner_id"
+                                 constraintName="fk_deck_owner"
+                                 referencedTableName="app_user" referencedColumnNames="id"/>
+        <createIndex tableName="deck" indexName="idx_deck_owner_id">
+            <column name="owner_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

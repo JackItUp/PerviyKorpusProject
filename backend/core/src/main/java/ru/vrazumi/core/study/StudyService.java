@@ -23,8 +23,8 @@ public class StudyService {
   private final StudyMapper studyMapper;
 
   @Transactional(readOnly = true)
-  public StudySessionResponse getStudySession(Long deckId) {
-    Deck deck = deckService.getExisting(deckId);
+  public StudySessionResponse getStudySession(Long deckId, Long userId) {
+    Deck deck = deckService.getExisting(deckId, userId);
     List<Card> cards = cardService.getCardsInOrder(deckId);
     return studyMapper.toResponse(deck, cards);
   }

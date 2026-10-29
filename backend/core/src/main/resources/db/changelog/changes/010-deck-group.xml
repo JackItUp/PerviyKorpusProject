@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- Группы колод. Таблица deck_group: слово group зарезервировано в SQL -->
+    <changeSet id="010-deck-group" author="vrazumi">
+        <createTable tableName="deck_group">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" primaryKeyName="pk_deck_group"/>
+            </column>
+            <column name="owner_id" type="bigint">
+                <constraints nullable="false"
+                             foreignKeyName="fk_deck_group_owner"
+                             referencedTableName="app_user"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Имя группы уникально у владельца без учёта регистра; индекс заодно ищет группы владельца -->
+        <sql>CREATE UNIQUE INDEX uq_deck_group_owner_name_lower ON deck_group (owner_id, lower(name))</sql>
+
+        <!-- Колода может быть вне группы. При удалении группы колоды остаются, но без группы -->
+        <addColumn tableName="deck">
+            <column name="group_id" type="bigint"/>
+        </addColumn>
+        <addForeignKeyConstraint baseTableName="deck" baseColumnNames="group_id"
+                                 constraintName="fk_deck_group"
+                                 referencedTableName="deck_group" referencedColumnNames="id"
+                                 onDelete="SET NULL"/>
+        <createIndex tableName="deck" indexName="idx_deck_group_id">
+            <column name="group_id"/>
+        </createIndex>
+
+        <rollback>
+            <dropColumn tableName="deck" columnName="group_id"/>
+            <dropTable tableName="deck_group"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

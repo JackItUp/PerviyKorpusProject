@@ -20,6 +20,8 @@ class CoreApplicationIT extends AbstractIntegrationTest {
 
   @Test
   void onlyHealthActuatorEndpointIsExposed() throws Exception {
+    anonymous.perform(get("/actuator/env")).andExpect(status().isUnauthorized());
+    actAs("alice");
     mvc.perform(get("/actuator/env")).andExpect(status().isNotFound());
   }
 

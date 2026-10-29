@@ -30,36 +30,38 @@ class StudyServiceTest {
   @Spy private StudyMapper studyMapper = Mappers.getMapper(StudyMapper.class);
   @InjectMocks private StudyService studyService;
 
+  private static final long USER = 5L;
+
   @Test
   void returnsDeckTitleAndCardsInOrder() {
     Deck deck = deck();
-    when(deckService.getExisting(1L)).thenReturn(deck);
+    when(deckService.getExisting(1L, USER)).thenReturn(deck);
     when(cardService.getCardsInOrder(1L))
         .thenReturn(List.of(card(10L, deck, "go", "went"), card(11L, deck, "be", "was")));
 
-    StudySessionResponse session = studyService.getStudySession(1L);
+    StudySessionResponse session = studyService.getStudySession(1L, USER);
 
     assertThat(session.deckId()).isEqualTo(1L);
     assertThat(session.deckTitle()).isEqualTo("Английские глаголы");
     assertThat(session.cards())
         .containsExactly(
-            new StudyCardResponse(10L, CardType.NORMAL, "go", "went"),
-            new StudyCardResponse(11L, CardType.NORMAL, "be", "was"));
+            new StudyCardResponse(10L, CardType.NORMAL, "go", "went", List.of()),
+            new StudyCardResponse(11L, CardType.NORMAL, "be", "was", List.of()));
   }
 
   @Test
   void emptyDeckGivesEmptyCardList() {
-    when(deckService.getExisting(1L)).thenReturn(deck());
+    when(deckService.getExisting(1L, USER)).thenReturn(deck());
     when(cardService.getCardsInOrder(1L)).thenReturn(List.of());
 
-    assertThat(studyService.getStudySession(1L).cards()).isEmpty();
+    assertThat(studyService.getStudySession(1L, USER).cards()).isEmpty();
   }
 
   @Test
   void missingDeckThrowsNotFound() {
-    when(deckService.getExisting(99L)).thenThrow(new DeckNotFoundException(99L));
+    when(deckService.getExisting(99L, USER)).thenThrow(new DeckNotFoundException(99L));
 
-    assertThatThrownBy(() -> studyService.getStudySession(99L))
+    assertThatThrownBy(() -> studyService.getStudySession(99L, USER))
         .isInstanceOf(DeckNotFoundException.class);
     verifyNoInteractions(cardService);
   }

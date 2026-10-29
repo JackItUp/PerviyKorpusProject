@@ -2,14 +2,19 @@ package ru.vrazumi.core.deck;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.vrazumi.core.common.AuditableEntity;
+import ru.vrazumi.core.group.DeckGroup;
+import ru.vrazumi.core.user.User;
 
 @Getter
 @Setter
@@ -30,4 +35,13 @@ public class Deck extends AuditableEntity {
 
   @Column(name = "description", length = DESCRIPTION_MAX_LENGTH)
   private String description;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "owner_id", nullable = false, updatable = false)
+  private User owner;
+
+  /** Группа колоды или {@code null}, если колода вне групп. */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "group_id")
+  private DeckGroup group;
 }
