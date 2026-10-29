@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import ru.vrazumi.core.common.BadRequestException;
 
 class AnswerCheckerTest {
@@ -58,6 +60,46 @@ class AnswerCheckerTest {
   @Test
   void correctOptionIds() {
     assertThat(checker.correctOptionIds(twoCorrect)).containsExactlyInAnyOrder(1L, 2L);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "went",
+        "WENT",
+        "  Went  ",
+        "\twent\n",
+        "went ", // неразрывный пробел
+      })
+  void textAnswerIgnoresCaseAndSurroundingSpaces(String answer) {
+    assertThat(checker.checkText(textCard("went"), answer)).isEqualTo(AnswerResult.CORRECT);
+  }
+
+  @Test
+  void textAnswerCollapsesInnerSpaces() {
+    assertThat(checker.checkText(textCard("went, gone"), "went,   GONE"))
+        .isEqualTo(AnswerResult.CORRECT);
+    assertThat(checker.checkText(textCard("Санкт-Петербург"), "санкт-петербург "))
+        .isEqualTo(AnswerResult.CORRECT);
+  }
+
+  @Test
+  void textAnswerComparesComposedAndDecomposedLettersAsEqual() {
+    // «й» одним символом и как «и» + комбинируемая бревис
+    assertThat(checker.checkText(textCard("мой"), "мой")).isEqualTo(AnswerResult.CORRECT);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"go", "wentt", "went gone", "w ent"})
+  void wrongTextAnswerIsIncorrect(String answer) {
+    assertThat(checker.checkText(textCard("went"), answer)).isEqualTo(AnswerResult.INCORRECT);
+  }
+
+  private static Card textCard(String answer) {
+    Card card = new Card();
+    card.setType(CardType.TEXT_INPUT);
+    card.setAnswer(answer);
+    return card;
   }
 
   /** Карточка с вариантами id 1..n. */

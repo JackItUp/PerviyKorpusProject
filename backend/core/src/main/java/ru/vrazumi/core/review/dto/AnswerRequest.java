@@ -7,4 +7,5 @@ import java.util.List;
 @Schema(description = "Ответ на карточку, которую проверяет сервер")
 public record AnswerRequest(
     @Schema(description = "Для MULTIPLE_CHOICE: id выбранных вариантов", example = "[31, 33]")
-        List<Long> selectedOptionIds) {}
+        List<Long> selectedOptionIds,
+    @Schema(description = "Для TEXT_INPUT: введённый ответ", example = "went") String text) {}

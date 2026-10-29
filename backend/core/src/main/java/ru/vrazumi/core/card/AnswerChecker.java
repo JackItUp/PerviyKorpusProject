@@ -1,8 +1,11 @@
 package ru.vrazumi.core.card;
 
+import java.text.Normalizer;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import ru.vrazumi.core.common.BadRequestException;
@@ -10,6 +13,9 @@ import ru.vrazumi.core.common.BadRequestException;
 /** Проверка ответов на карточки, которые проверяет сервер. */
 @Component
 public class AnswerChecker {
+
+  private static final Pattern WHITESPACE =
+      Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
 
   /**
    * Сравнивает выбранные варианты с верными: полное совпадение — {@link AnswerResult#CORRECT}, хотя
@@ -40,5 +46,21 @@ public class AnswerChecker {
         .filter(CardOption::isCorrect)
         .map(CardOption::getId)
         .collect(Collectors.toSet());
+  }
+
+  /** Сравнивает введённый ответ с верным без учёта регистра и лишних пробелов. */
+  public AnswerResult checkText(Card card, String answer) {
+    return normalize(answer).equals(normalize(card.getAnswer()))
+        ? AnswerResult.CORRECT
+        : AnswerResult.INCORRECT;
+  }
+
+  /**
+   * Приводит текст к виду для сравнения: Unicode NFC (одинаковые буквы, набранные по-разному),
+   * пробелы по краям убраны, внутренние схлопнуты в один, нижний регистр.
+   */
+  static String normalize(String text) {
+    String composed = Normalizer.normalize(text == null ? "" : text, Normalizer.Form.NFC);
+    return WHITESPACE.matcher(composed).replaceAll(" ").strip().toLowerCase(Locale.ROOT);
   }
 }

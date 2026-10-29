@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.vrazumi.core.card.AnswerChecker;
@@ -63,7 +64,7 @@ class AnswerServiceTest {
         .thenReturn(new ReviewResponse(100L, 10L, rating, Instant.now()));
     List<Long> ids = List.of(selected.split(",")).stream().map(Long::valueOf).toList();
 
-    AnswerResultResponse response = answerService.answer(10L, new AnswerRequest(ids), USER);
+    AnswerResultResponse response = answerService.answer(10L, new AnswerRequest(ids, null), USER);
 
     assertThat(response.result()).isEqualTo(expected);
     assertThat(response.correctOptionIds()).containsExactly(1L, 2L);
@@ -75,7 +76,7 @@ class AnswerServiceTest {
   void emptySelectionIsRejected() {
     when(cardService.getExisting(10L, USER)).thenReturn(card);
 
-    assertThatThrownBy(() -> answerService.answer(10L, new AnswerRequest(List.of()), USER))
+    assertThatThrownBy(() -> answerService.answer(10L, new AnswerRequest(List.of(), null), USER))
         .isInstanceOfSatisfying(
             BadRequestException.class,
             ex -> assertThat(ex.getField()).isEqualTo("selectedOptionIds"));
@@ -86,8 +87,43 @@ class AnswerServiceTest {
   void missingSelectionIsRejected() {
     when(cardService.getExisting(10L, USER)).thenReturn(card);
 
-    assertThatThrownBy(() -> answerService.answer(10L, new AnswerRequest(null), USER))
+    assertThatThrownBy(() -> answerService.answer(10L, new AnswerRequest(null, null), USER))
         .isInstanceOf(BadRequestException.class);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"'  WENT ', CORRECT, KNOW", "gone, INCORRECT, DONT_KNOW"})
+  void textAnswerIsCheckedAndReturnsCorrectAnswer(
+      String text, AnswerResult expected, Rating rating) {
+    Card textCard = textCard();
+    when(cardService.getExisting(12L, USER)).thenReturn(textCard);
+    when(reviewService.record(textCard, rating, USER))
+        .thenReturn(new ReviewResponse(101L, 12L, rating, Instant.now()));
+
+    AnswerResultResponse response = answerService.answer(12L, new AnswerRequest(null, text), USER);
+
+    assertThat(response.result()).isEqualTo(expected);
+    assertThat(response.correctAnswer()).isEqualTo("went");
+    assertThat(response.correctOptionIds()).isNull();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "   "})
+  void blankTextAnswerIsRejected(String text) {
+    when(cardService.getExisting(12L, USER)).thenReturn(textCard());
+
+    assertThatThrownBy(() -> answerService.answer(12L, new AnswerRequest(null, text), USER))
+        .isInstanceOfSatisfying(
+            BadRequestException.class, ex -> assertThat(ex.getField()).isEqualTo("text"));
+    verifyNoInteractions(reviewService);
+  }
+
+  private static Card textCard() {
+    Card card = new Card();
+    card.setId(12L);
+    card.setType(CardType.TEXT_INPUT);
+    card.setAnswer("went");
+    return card;
   }
 
   @Test
@@ -96,7 +132,7 @@ class AnswerServiceTest {
     normal.setId(11L);
     when(cardService.getExisting(11L, USER)).thenReturn(normal);
 
-    assertThatThrownBy(() -> answerService.answer(11L, new AnswerRequest(List.of(1L)), USER))
+    assertThatThrownBy(() -> answerService.answer(11L, new AnswerRequest(List.of(1L), null), USER))
         .isInstanceOf(BadRequestException.class)
         .hasMessageContaining("/review");
     verify(reviewService, never()).record(any(), any(), any());

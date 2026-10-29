@@ -42,19 +42,19 @@ public @interface ValidCardContent {
       }
       context.disableDefaultConstraintViolation();
       return switch (request.type()) {
-        case NORMAL -> validateNormal(request, context);
+        case NORMAL, TEXT_INPUT -> validateWithAnswer(request, context);
         case MULTIPLE_CHOICE -> validateChoice(request, context);
       };
     }
 
-    private static boolean validateNormal(
+    private static boolean validateWithAnswer(
         CreateCardRequest request, ConstraintValidatorContext context) {
       boolean valid = true;
       if (request.answer() == null) {
         valid = violation(context, "answer", "Ответ обязателен");
       }
       if (!request.options().isEmpty()) {
-        valid = violation(context, "options", "У обычной карточки нет вариантов ответа");
+        valid = violation(context, "options", "Варианты ответа бывают только у MULTIPLE_CHOICE");
       }
       return valid;
     }

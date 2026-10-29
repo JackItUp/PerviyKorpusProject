@@ -35,6 +35,7 @@ public class AnswerService {
               "Обычную карточку оценивают самостоятельно: POST /api/cards/%d/review"
                   .formatted(cardId));
       case MULTIPLE_CHOICE -> answerChoice(card, request, userId);
+      case TEXT_INPUT -> answerText(card, request, userId);
     };
   }
 
@@ -46,7 +47,16 @@ public class AnswerService {
     AnswerResult result = answerChecker.checkChoice(card, selected);
     ReviewResponse review = reviewService.record(card, toRating(result), userId);
     List<Long> correct = answerChecker.correctOptionIds(card).stream().sorted().toList();
-    return new AnswerResultResponse(result, correct, review);
+    return new AnswerResultResponse(result, correct, null, review);
+  }
+
+  private AnswerResultResponse answerText(Card card, AnswerRequest request, Long userId) {
+    if (request.text() == null || request.text().isBlank()) {
+      throw new BadRequestException("text", "Введите ответ");
+    }
+    AnswerResult result = answerChecker.checkText(card, request.text());
+    ReviewResponse review = reviewService.record(card, toRating(result), userId);
+    return new AnswerResultResponse(result, null, card.getAnswer(), review);
   }
 
   static Rating toRating(AnswerResult result) {
