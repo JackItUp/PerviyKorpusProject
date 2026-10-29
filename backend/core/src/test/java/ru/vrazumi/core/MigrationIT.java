@@ -27,7 +27,9 @@ class MigrationIT extends AbstractIntegrationTest {
     List<String> ids =
         jdbc.queryForList("SELECT id FROM databasechangelog ORDER BY orderexecuted", String.class);
 
-    assertThat(ids).containsExactly("001-create-deck", "002-create-card", "003-create-review");
+    assertThat(ids)
+        .containsExactly(
+            "001-create-deck", "002-create-card", "003-create-review", "005-create-app-user");
   }
 
   @Test

@@ -38,6 +38,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return problem;
   }
 
+  @ExceptionHandler(ConflictException.class)
+  public ProblemDetail handleConflict(ConflictException ex) {
+    ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    problem.setTitle("Конфликт");
+    problem.setProperty(
+        ERRORS_PROPERTY, List.of(new FieldViolation(ex.getField(), ex.getMessage())));
+    return problem;
+  }
+
   @ExceptionHandler(Exception.class)
   public ProblemDetail handleUnexpected(Exception ex) {
     log.error("Непредвиденная ошибка при обработке запроса", ex);
