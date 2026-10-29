@@ -59,6 +59,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return problem;
   }
 
+  @ExceptionHandler(BadRequestException.class)
+  public ProblemDetail handleBadRequest(BadRequestException ex) {
+    ProblemDetail problem = badRequest(ex.getMessage());
+    if (ex.getField() != null) {
+      problem.setProperty(
+          ERRORS_PROPERTY, List.of(new FieldViolation(ex.getField(), ex.getMessage())));
+    }
+    return problem;
+  }
+
   @ExceptionHandler(ConflictException.class)
   public ProblemDetail handleConflict(ConflictException ex) {
     ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
@@ -155,11 +165,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     return problem;
   }
 
+  /** Путь к полю в том же виде, что у Bean Validation: {@code options[1].text}. */
   private static String fieldPath(JacksonException ex) {
-    return ex.getPath().stream()
-        .map(
-            ref ->
-                ref.getPropertyName() != null ? ref.getPropertyName() : "[" + ref.getIndex() + "]")
-        .collect(Collectors.joining("."));
+    StringBuilder path = new StringBuilder();
+    for (JacksonException.Reference ref : ex.getPath()) {
+      if (ref.getPropertyName() != null) {
+        path.append(path.isEmpty() ? "" : ".").append(ref.getPropertyName());
+      } else {
+        path.append('[').append(ref.getIndex()).append(']');
+      }
+    }
+    return path.toString();
   }
 }

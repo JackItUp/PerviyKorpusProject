@@ -36,7 +36,8 @@ class MigrationIT extends AbstractIntegrationTest {
             "006-create-refresh-token",
             "007-deck-owner-column",
             "007-deck-owner-required",
-            "008-review-user");
+            "008-review-user",
+            "009-card-options");
   }
 
   @Test

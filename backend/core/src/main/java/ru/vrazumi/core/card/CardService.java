@@ -20,8 +20,9 @@ public class CardService {
   @Transactional
   public CardResponse create(Long deckId, CreateCardRequest request, Long userId) {
     Deck deck = deckService.getExisting(deckId, userId);
-    Card card = cardRepository.save(cardMapper.toEntity(request, deck));
-    return cardMapper.toResponse(card);
+    Card card = cardMapper.toEntity(request, deck);
+    request.options().forEach(option -> card.addOption(option.text(), option.correct()));
+    return cardMapper.toResponse(cardRepository.save(card));
   }
 
   @Transactional(readOnly = true)

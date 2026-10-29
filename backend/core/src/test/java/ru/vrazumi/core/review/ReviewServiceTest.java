@@ -24,6 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import ru.vrazumi.core.card.Card;
 import ru.vrazumi.core.card.CardNotFoundException;
 import ru.vrazumi.core.card.CardService;
+import ru.vrazumi.core.card.CardType;
+import ru.vrazumi.core.common.BadRequestException;
 import ru.vrazumi.core.review.dto.CreateReviewRequest;
 import ru.vrazumi.core.review.dto.ReviewResponse;
 import ru.vrazumi.core.user.User;
@@ -87,6 +89,18 @@ class ReviewServiceTest {
     assertThat(saved.getAllValues()).doesNotHaveDuplicates();
     assertThat(saved.getAllValues()).allSatisfy(review -> assertThat(review.getId()).isNotNull());
     assertThat(first.id()).isNotEqualTo(second.id());
+  }
+
+  @Test
+  void selfReviewIsRejectedForCardsCheckedByServer() {
+    Card card = card(10L);
+    card.setType(CardType.MULTIPLE_CHOICE);
+    when(cardService.getExisting(10L, USER)).thenReturn(card);
+
+    assertThatThrownBy(() -> reviewService.create(10L, new CreateReviewRequest(Rating.KNOW), USER))
+        .isInstanceOf(BadRequestException.class)
+        .hasMessageContaining("/api/cards/10/answer");
+    verifyNoInteractions(reviewRepository);
   }
 
   @Test

@@ -1,16 +1,21 @@
 package ru.vrazumi.core.card.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import ru.vrazumi.core.card.Card;
+import ru.vrazumi.core.card.CardType;
 import ru.vrazumi.core.common.Texts;
 
 /**
- * Запрос на создание карточки. Тип карточки клиент не передаёт: пока это всегда NORMAL. Строки
- * обрезаются по краям до валидации.
+ * Запрос на создание карточки. Строки обрезаются по краям до валидации. Какие поля нужны, зависит
+ * от типа: это проверяет {@link ValidCardContent}.
  */
-@Schema(description = "Новая карточка «вопрос — ответ»")
+@Schema(description = "Новая карточка")
+@ValidCardContent
 public record CreateCardRequest(
     @Schema(
             description = "Вопрос",
@@ -23,16 +28,24 @@ public record CreateCardRequest(
             message = "Вопрос должен быть не длиннее {max} символов")
         String question,
     @Schema(
-            description = "Ответ",
+            description = "Ответ. Обязателен для NORMAL, у MULTIPLE_CHOICE отсутствует",
             example = "went, gone",
-            requiredMode = Schema.RequiredMode.REQUIRED,
             maxLength = Card.ANSWER_MAX_LENGTH)
-        @NotBlank(message = "Ответ обязателен")
         @Size(max = Card.ANSWER_MAX_LENGTH, message = "Ответ должен быть не длиннее {max} символов")
-        String answer) {
+        String answer,
+    @Schema(description = "Тип карточки, по умолчанию NORMAL", example = "NORMAL") CardType type,
+    @Schema(description = "Варианты ответа, только для MULTIPLE_CHOICE")
+        List<@NotNull(message = "Вариант не может быть null") @Valid OptionRequest> options) {
 
   public CreateCardRequest {
     question = Texts.trim(question);
-    answer = Texts.trim(answer);
+    answer = Texts.trimToNull(answer);
+    type = type == null ? CardType.NORMAL : type;
+    options = options == null ? List.of() : options;
+  }
+
+  /** Обычная карточка «вопрос — ответ». */
+  public CreateCardRequest(String question, String answer) {
+    this(question, answer, CardType.NORMAL, List.of());
   }
 }

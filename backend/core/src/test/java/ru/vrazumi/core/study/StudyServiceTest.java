@@ -45,8 +45,8 @@ class StudyServiceTest {
     assertThat(session.deckTitle()).isEqualTo("Английские глаголы");
     assertThat(session.cards())
         .containsExactly(
-            new StudyCardResponse(10L, CardType.NORMAL, "go", "went"),
-            new StudyCardResponse(11L, CardType.NORMAL, "be", "was"));
+            new StudyCardResponse(10L, CardType.NORMAL, "go", "went", List.of()),
+            new StudyCardResponse(11L, CardType.NORMAL, "be", "was", List.of()));
   }
 
   @Test

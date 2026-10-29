@@ -33,7 +33,8 @@ class StudyControllerTest {
             new StudySessionResponse(
                 1L,
                 "Английские глаголы",
-                List.of(new StudyCardResponse(10L, CardType.NORMAL, "go", "went, gone"))));
+                List.of(
+                    new StudyCardResponse(10L, CardType.NORMAL, "go", "went, gone", List.of()))));
 
     mvc.perform(get("/api/decks/1/study"))
         .andExpect(status().isOk())
