@@ -18,27 +18,32 @@ public class CardService {
   private final DeckService deckService;
 
   @Transactional
-  public CardResponse create(Long deckId, CreateCardRequest request) {
-    Deck deck = deckService.getExisting(deckId);
+  public CardResponse create(Long deckId, CreateCardRequest request, Long userId) {
+    Deck deck = deckService.getExisting(deckId, userId);
     Card card = cardRepository.save(cardMapper.toEntity(request, deck));
     return cardMapper.toResponse(card);
   }
 
   @Transactional(readOnly = true)
-  public List<CardResponse> findByDeck(Long deckId) {
-    deckService.ensureExists(deckId);
+  public List<CardResponse> findByDeck(Long deckId, Long userId) {
+    deckService.ensureExists(deckId, userId);
     return cardRepository.findByDeckIdOrderByIdAsc(deckId).stream()
         .map(cardMapper::toResponse)
         .toList();
   }
 
-  /** Карточка для других фич (оценки). Бросает 404, если карточки нет. */
+  /** Карточка пользователя для других фич (оценки). Чужая или несуществующая — 404. */
   @Transactional(readOnly = true)
-  public Card getExisting(Long cardId) {
-    return cardRepository.findById(cardId).orElseThrow(() -> new CardNotFoundException(cardId));
+  public Card getExisting(Long cardId, Long userId) {
+    return cardRepository
+        .findByIdAndDeckOwnerId(cardId, userId)
+        .orElseThrow(() -> new CardNotFoundException(cardId));
   }
 
-  /** Карточки колоды в порядке добавления для других фич. Существование колоды не проверяет. */
+  /**
+   * Карточки колоды в порядке добавления для других фич. Владельца не проверяет: вызывающий уже
+   * получил колоду через {@link DeckService}.
+   */
   @Transactional(readOnly = true)
   public List<Card> getCardsInOrder(Long deckId) {
     return cardRepository.findByDeckIdOrderByIdAsc(deckId);

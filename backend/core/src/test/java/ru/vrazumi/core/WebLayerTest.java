@@ -12,11 +12,12 @@ import ru.vrazumi.core.auth.SecurityConfig;
 /**
  * {@link WebMvcTest} с настоящей конфигурацией безопасности приложения. Без неё срез поднял бы
  * Spring Security по умолчанию (Basic-авторизация) и ответы 401/403 отличались бы от боевых.
+ * Запросы по умолчанию идут от пользователя {@link DefaultTestUserConfig#USER_ID}.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @WebMvcTest
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, DefaultTestUserConfig.class})
 public @interface WebLayerTest {
 
   @AliasFor(annotation = WebMvcTest.class, attribute = "controllers")

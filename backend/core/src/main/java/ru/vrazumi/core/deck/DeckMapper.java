@@ -9,6 +9,7 @@ import ru.vrazumi.core.deck.dto.DeckResponse;
 public interface DeckMapper {
 
   @Mapping(target = "id", ignore = true)
+  @Mapping(target = "owner", ignore = true)
   Deck toEntity(CreateDeckRequest request);
 
   @Mapping(target = "cardCount", source = "cardCount")

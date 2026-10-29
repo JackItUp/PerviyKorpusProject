@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -87,7 +88,7 @@ class AuthControllerTest {
 
   @Test
   void meWithoutTokenReturns401ProblemDetail() throws Exception {
-    mvc.perform(get("/api/auth/me"))
+    mvc.perform(get("/api/auth/me").with(anonymous()))
         .andExpect(status().isUnauthorized())
         .andExpect(header().string("WWW-Authenticate", "Bearer"))
         .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -98,7 +99,7 @@ class AuthControllerTest {
 
   @Test
   void meWithInvalidTokenReturns401() throws Exception {
-    mvc.perform(get("/api/auth/me").header("Authorization", "Bearer not-a-jwt"))
+    mvc.perform(get("/api/auth/me").with(anonymous()).header("Authorization", "Bearer not-a-jwt"))
         .andExpect(status().isUnauthorized())
         .andExpect(jsonPath("$.detail").value(ProblemDetailSecurityHandler.TOKEN_INVALID));
   }

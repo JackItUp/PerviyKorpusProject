@@ -65,6 +65,11 @@ public class UserService {
         .orElseThrow(() -> new UnauthorizedException("Пользователь не найден"));
   }
 
+  /** Ссылка на пользователя для связей (владелец колоды, автор оценки) без лишнего SELECT. */
+  public User getReference(Long userId) {
+    return userRepository.getReferenceById(userId);
+  }
+
   @Transactional(readOnly = true)
   public UserResponse getProfile(Long userId) {
     return userMapper.toResponse(getExisting(userId));

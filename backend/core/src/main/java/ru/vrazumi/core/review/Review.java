@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.vrazumi.core.card.Card;
+import ru.vrazumi.core.user.User;
 
 /** Одна оценка ответа. Записи только добавляются: из них строится история и статистика. */
 @Getter
@@ -28,6 +29,11 @@ public class Review {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+
+  /** Кто поставил оценку. */
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false, updatable = false)
+  private User user;
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "card_id", nullable = false, updatable = false)

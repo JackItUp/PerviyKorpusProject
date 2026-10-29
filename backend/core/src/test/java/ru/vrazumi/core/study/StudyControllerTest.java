@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.vrazumi.core.DefaultTestUserConfig;
 import ru.vrazumi.core.WebLayerTest;
 import ru.vrazumi.core.card.CardType;
 import ru.vrazumi.core.deck.DeckNotFoundException;
@@ -20,12 +21,14 @@ import ru.vrazumi.core.study.dto.StudySessionResponse;
 @WebLayerTest(StudyController.class)
 class StudyControllerTest {
 
+  private static final long USER = DefaultTestUserConfig.USER_ID;
+
   @Autowired private MockMvc mvc;
   @MockitoBean private StudyService studyService;
 
   @Test
   void returnsStudySession() throws Exception {
-    when(studyService.getStudySession(1L))
+    when(studyService.getStudySession(1L, USER))
         .thenReturn(
             new StudySessionResponse(
                 1L,
@@ -44,7 +47,7 @@ class StudyControllerTest {
 
   @Test
   void emptyDeckReturns200WithEmptyCards() throws Exception {
-    when(studyService.getStudySession(1L))
+    when(studyService.getStudySession(1L, USER))
         .thenReturn(new StudySessionResponse(1L, "Пустая", List.of()));
 
     mvc.perform(get("/api/decks/1/study"))
@@ -55,7 +58,7 @@ class StudyControllerTest {
 
   @Test
   void missingDeckReturns404() throws Exception {
-    when(studyService.getStudySession(99L)).thenThrow(new DeckNotFoundException(99L));
+    when(studyService.getStudySession(99L, USER)).thenThrow(new DeckNotFoundException(99L));
 
     mvc.perform(get("/api/decks/99/study"))
         .andExpect(status().isNotFound())

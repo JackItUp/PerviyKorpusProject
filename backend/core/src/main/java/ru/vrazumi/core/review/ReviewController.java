@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import ru.vrazumi.core.auth.CurrentUserId;
 import ru.vrazumi.core.review.dto.CreateReviewRequest;
 import ru.vrazumi.core.review.dto.ReviewResponse;
 
@@ -39,7 +40,9 @@ public class ReviewController {
   @PostMapping("/api/cards/{cardId}/review")
   @ResponseStatus(HttpStatus.CREATED)
   public ReviewResponse create(
-      @PathVariable Long cardId, @Valid @RequestBody CreateReviewRequest request) {
-    return reviewService.create(cardId, request);
+      @PathVariable Long cardId,
+      @Valid @RequestBody CreateReviewRequest request,
+      @CurrentUserId Long userId) {
+    return reviewService.create(cardId, request, userId);
   }
 }

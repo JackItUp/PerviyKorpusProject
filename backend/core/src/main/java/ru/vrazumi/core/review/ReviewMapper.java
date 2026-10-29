@@ -11,6 +11,7 @@ import ru.vrazumi.core.review.dto.ReviewResponse;
 public interface ReviewMapper {
 
   @Mapping(target = "id", ignore = true)
+  @Mapping(target = "user", ignore = true)
   @Mapping(target = "card", source = "card")
   @Mapping(target = "rating", source = "request.rating")
   @Mapping(target = "reviewedAt", source = "reviewedAt")

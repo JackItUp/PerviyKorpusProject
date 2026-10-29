@@ -3,6 +3,7 @@ package ru.vrazumi.core.deck;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -21,12 +22,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import ru.vrazumi.core.DefaultTestUserConfig;
 import ru.vrazumi.core.WebLayerTest;
 import ru.vrazumi.core.deck.dto.CreateDeckRequest;
 import ru.vrazumi.core.deck.dto.DeckResponse;
 
 @WebLayerTest(DeckController.class)
 class DeckControllerTest {
+
+  private static final long USER = DefaultTestUserConfig.USER_ID;
 
   private static final Instant NOW = Instant.parse("2026-10-01T09:30:00Z");
 
@@ -35,7 +39,7 @@ class DeckControllerTest {
 
   @Test
   void createReturns201WithLocation() throws Exception {
-    when(deckService.create(any())).thenReturn(deck(1L, "Английские глаголы", 0));
+    when(deckService.create(any(), eq(USER))).thenReturn(deck(1L, "Английские глаголы", 0));
 
     postDeck(
             """
@@ -49,13 +53,13 @@ class DeckControllerTest {
         .andExpect(jsonPath("$.createdAt").value("2026-10-01T09:30:00Z"));
 
     ArgumentCaptor<CreateDeckRequest> request = ArgumentCaptor.forClass(CreateDeckRequest.class);
-    verify(deckService).create(request.capture());
+    verify(deckService).create(request.capture(), eq(USER));
     assertThat(request.getValue().title()).isEqualTo("Английские глаголы");
   }
 
   @Test
   void createAcceptsTitleOf100CharsSurroundedBySpaces() throws Exception {
-    when(deckService.create(any())).thenReturn(deck(1L, "x".repeat(100), 0));
+    when(deckService.create(any(), eq(USER))).thenReturn(deck(1L, "x".repeat(100), 0));
 
     postDeck("{\"title\": \"   " + "x".repeat(100) + "   \"}").andExpect(status().isCreated());
   }
@@ -99,7 +103,7 @@ class DeckControllerTest {
 
   @Test
   void findAllReturnsEmptyList() throws Exception {
-    when(deckService.findAll()).thenReturn(List.of());
+    when(deckService.findAll(USER)).thenReturn(List.of());
 
     mvc.perform(get("/api/decks"))
         .andExpect(status().isOk())
@@ -109,7 +113,8 @@ class DeckControllerTest {
 
   @Test
   void findAllReturnsDecks() throws Exception {
-    when(deckService.findAll()).thenReturn(List.of(deck(2L, "Вторая", 3), deck(1L, "Первая", 0)));
+    when(deckService.findAll(USER))
+        .thenReturn(List.of(deck(2L, "Вторая", 3), deck(1L, "Первая", 0)));
 
     mvc.perform(get("/api/decks"))
         .andExpect(status().isOk())
@@ -120,7 +125,7 @@ class DeckControllerTest {
 
   @Test
   void findByIdReturnsDeck() throws Exception {
-    when(deckService.findById(1L)).thenReturn(deck(1L, "Колода", 5));
+    when(deckService.findById(1L, USER)).thenReturn(deck(1L, "Колода", 5));
 
     mvc.perform(get("/api/decks/1"))
         .andExpect(status().isOk())
@@ -130,7 +135,7 @@ class DeckControllerTest {
 
   @Test
   void findByIdReturns404ForMissingDeck() throws Exception {
-    when(deckService.findById(99L)).thenThrow(new DeckNotFoundException(99L));
+    when(deckService.findById(99L, USER)).thenThrow(new DeckNotFoundException(99L));
 
     mvc.perform(get("/api/decks/99"))
         .andExpect(status().isNotFound())
@@ -151,7 +156,7 @@ class DeckControllerTest {
 
   @Test
   void unexpectedErrorReturns500WithoutStackTrace() throws Exception {
-    when(deckService.findAll()).thenThrow(new IllegalStateException("секретная деталь"));
+    when(deckService.findAll(USER)).thenThrow(new IllegalStateException("секретная деталь"));
 
     mvc.perform(get("/api/decks"))
         .andExpect(status().isInternalServerError())

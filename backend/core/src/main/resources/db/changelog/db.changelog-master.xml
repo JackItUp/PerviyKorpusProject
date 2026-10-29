@@ -15,5 +15,7 @@
     <!-- Спринт 2: пользователи -->
     <include file="changes/005-create-app-user.xml" relativeToChangelogFile="true"/>
     <include file="changes/006-create-refresh-token.xml" relativeToChangelogFile="true"/>
+    <include file="changes/007-deck-owner.xml" relativeToChangelogFile="true"/>
+    <include file="changes/008-review-user.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

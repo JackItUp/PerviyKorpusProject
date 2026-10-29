@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import ru.vrazumi.core.auth.CurrentUserId;
 import ru.vrazumi.core.deck.dto.CreateDeckRequest;
 import ru.vrazumi.core.deck.dto.DeckResponse;
 
@@ -36,8 +37,9 @@ public class DeckController {
       description = "Ошибка валидации",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @PostMapping
-  public ResponseEntity<DeckResponse> create(@Valid @RequestBody CreateDeckRequest request) {
-    DeckResponse deck = deckService.create(request);
+  public ResponseEntity<DeckResponse> create(
+      @Valid @RequestBody CreateDeckRequest request, @CurrentUserId Long userId) {
+    DeckResponse deck = deckService.create(request, userId);
     URI location =
         ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{deckId}")
@@ -48,8 +50,8 @@ public class DeckController {
 
   @Operation(summary = "Список колод", description = "Новые колоды первыми.")
   @GetMapping
-  public List<DeckResponse> findAll() {
-    return deckService.findAll();
+  public List<DeckResponse> findAll(@CurrentUserId Long userId) {
+    return deckService.findAll(userId);
   }
 
   @Operation(summary = "Колода по id")
@@ -59,7 +61,7 @@ public class DeckController {
       description = "Колоды нет",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @GetMapping("/{deckId}")
-  public DeckResponse findById(@PathVariable Long deckId) {
-    return deckService.findById(deckId);
+  public DeckResponse findById(@PathVariable Long deckId, @CurrentUserId Long userId) {
+    return deckService.findById(deckId, userId);
   }
 }

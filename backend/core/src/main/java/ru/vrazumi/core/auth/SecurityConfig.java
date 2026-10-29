@@ -66,11 +66,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(PUBLIC_DOCS_ENDPOINTS)
                     .permitAll()
-                    .requestMatchers("/api/auth/me")
-                    .authenticated()
-                    // Колоды, карточки и оценки закрываются вместе с привязкой к владельцу (2.2b)
                     .anyRequest()
-                    .permitAll())
+                    .authenticated())
         .oauth2ResourceServer(
             oauth2 ->
                 oauth2

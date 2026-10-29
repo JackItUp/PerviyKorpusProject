@@ -32,10 +32,12 @@ class CardServiceTest {
   @Spy private CardMapper cardMapper = Mappers.getMapper(CardMapper.class);
   @InjectMocks private CardService cardService;
 
+  private static final long USER = 5L;
+
   @Test
   void createSavesNormalCardWithTrimmedTextInDeck() {
     Deck deck = deck(1L);
-    when(deckService.getExisting(1L)).thenReturn(deck);
+    when(deckService.getExisting(1L, USER)).thenReturn(deck);
     when(cardRepository.save(any(Card.class)))
         .thenAnswer(
             invocation -> {
@@ -44,7 +46,8 @@ class CardServiceTest {
               return card;
             });
 
-    CardResponse response = cardService.create(1L, new CreateCardRequest("  go ", " went, gone\n"));
+    CardResponse response =
+        cardService.create(1L, new CreateCardRequest("  go ", " went, gone\n"), USER);
 
     ArgumentCaptor<Card> saved = ArgumentCaptor.forClass(Card.class);
     verify(cardRepository).save(saved.capture());
@@ -59,9 +62,9 @@ class CardServiceTest {
 
   @Test
   void createThrowsNotFoundForMissingDeck() {
-    when(deckService.getExisting(99L)).thenThrow(new DeckNotFoundException(99L));
+    when(deckService.getExisting(99L, USER)).thenThrow(new DeckNotFoundException(99L));
 
-    assertThatThrownBy(() -> cardService.create(99L, new CreateCardRequest("go", "went")))
+    assertThatThrownBy(() -> cardService.create(99L, new CreateCardRequest("go", "went"), USER))
         .isInstanceOf(DeckNotFoundException.class);
     verifyNoInteractions(cardRepository);
   }
@@ -72,17 +75,18 @@ class CardServiceTest {
     when(cardRepository.findByDeckIdOrderByIdAsc(1L))
         .thenReturn(List.of(card(10L, deck, "go"), card(11L, deck, "be")));
 
-    assertThat(cardService.findByDeck(1L))
+    assertThat(cardService.findByDeck(1L, USER))
         .extracting(CardResponse::id, CardResponse::question)
         .containsExactly(tuple(10L, "go"), tuple(11L, "be"));
-    verify(deckService).ensureExists(1L);
+    verify(deckService).ensureExists(1L, USER);
   }
 
   @Test
   void findByDeckThrowsNotFoundForMissingDeck() {
-    doThrow(new DeckNotFoundException(99L)).when(deckService).ensureExists(99L);
+    doThrow(new DeckNotFoundException(99L)).when(deckService).ensureExists(99L, USER);
 
-    assertThatThrownBy(() -> cardService.findByDeck(99L)).isInstanceOf(DeckNotFoundException.class);
+    assertThatThrownBy(() -> cardService.findByDeck(99L, USER))
+        .isInstanceOf(DeckNotFoundException.class);
     verifyNoInteractions(cardRepository);
   }
 

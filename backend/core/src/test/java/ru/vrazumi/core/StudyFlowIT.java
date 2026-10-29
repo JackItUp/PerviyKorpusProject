@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -19,6 +20,11 @@ import ru.vrazumi.core.review.Rating;
 
 /** Сквозные сценарии спринта 1 через HTTP API на настоящем PostgreSQL. */
 class StudyFlowIT extends AbstractIntegrationTest {
+
+  @BeforeEach
+  void signIn() throws Exception {
+    actAs("alice");
+  }
 
   @Test
   void createDeckAddCardsStudyAndReviewTwice() throws Exception {

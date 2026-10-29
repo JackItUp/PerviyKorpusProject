@@ -20,26 +20,34 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.vrazumi.core.deck.dto.CreateDeckRequest;
 import ru.vrazumi.core.deck.dto.DeckResponse;
+import ru.vrazumi.core.user.User;
+import ru.vrazumi.core.user.UserService;
 
 @ExtendWith(MockitoExtension.class)
 class DeckServiceTest {
 
   @Mock private DeckRepository deckRepository;
+  @Mock private UserService userService;
   @Spy private DeckMapper deckMapper = Mappers.getMapper(DeckMapper.class);
   @InjectMocks private DeckService deckService;
 
+  private static final long USER = 5L;
+  private final User owner = new User();
+
   @Test
   void createSavesDeckWithTrimmedText() {
+    when(userService.getReference(USER)).thenReturn(owner);
     when(deckRepository.save(any(Deck.class))).thenAnswer(invocation -> withId(invocation, 1L));
 
     DeckResponse response =
         deckService.create(
-            new CreateDeckRequest("  Английские глаголы \n", "\tНеправильные глаголы  "));
+            new CreateDeckRequest("  Английские глаголы \n", "\tНеправильные глаголы  "), USER);
 
     ArgumentCaptor<Deck> saved = ArgumentCaptor.forClass(Deck.class);
     verify(deckRepository).save(saved.capture());
     assertThat(saved.getValue().getTitle()).isEqualTo("Английские глаголы");
     assertThat(saved.getValue().getDescription()).isEqualTo("Неправильные глаголы");
+    assertThat(saved.getValue().getOwner()).isSameAs(owner);
     assertThat(response.id()).isEqualTo(1L);
     assertThat(response.title()).isEqualTo("Английские глаголы");
     assertThat(response.cardCount()).isZero();
@@ -49,7 +57,7 @@ class DeckServiceTest {
   void createStoresBlankDescriptionAsNull() {
     when(deckRepository.save(any(Deck.class))).thenAnswer(invocation -> withId(invocation, 2L));
 
-    DeckResponse response = deckService.create(new CreateDeckRequest("Колода", "   "));
+    DeckResponse response = deckService.create(new CreateDeckRequest("Колода", "   "), USER);
 
     ArgumentCaptor<Deck> saved = ArgumentCaptor.forClass(Deck.class);
     verify(deckRepository).save(saved.capture());
@@ -59,23 +67,23 @@ class DeckServiceTest {
 
   @Test
   void findAllMapsCardCounts() {
-    when(deckRepository.findAllWithCardCount())
+    when(deckRepository.findAllWithCardCount(USER))
         .thenReturn(
             List.of(
                 new DeckWithCardCount(deck(2L, "Вторая"), 3L),
                 new DeckWithCardCount(deck(1L, "Первая"), 0L)));
 
-    assertThat(deckService.findAll())
+    assertThat(deckService.findAll(USER))
         .extracting(DeckResponse::id, DeckResponse::cardCount)
         .containsExactly(tuple(2L, 3L), tuple(1L, 0L));
   }
 
   @Test
   void findByIdReturnsDeckWithCardCount() {
-    when(deckRepository.findWithCardCountById(1L))
+    when(deckRepository.findWithCardCountById(1L, USER))
         .thenReturn(Optional.of(new DeckWithCardCount(deck(1L, "Колода"), 5L)));
 
-    DeckResponse response = deckService.findById(1L);
+    DeckResponse response = deckService.findById(1L, USER);
 
     assertThat(response.title()).isEqualTo("Колода");
     assertThat(response.cardCount()).isEqualTo(5L);
@@ -83,17 +91,17 @@ class DeckServiceTest {
 
   @Test
   void ensureExistsThrowsNotFoundForMissingDeck() {
-    when(deckRepository.existsById(42L)).thenReturn(false);
+    when(deckRepository.existsByIdAndOwnerId(42L, USER)).thenReturn(false);
 
-    assertThatThrownBy(() -> deckService.ensureExists(42L))
+    assertThatThrownBy(() -> deckService.ensureExists(42L, USER))
         .isInstanceOf(DeckNotFoundException.class);
   }
 
   @Test
   void findByIdThrowsNotFoundForMissingDeck() {
-    when(deckRepository.findWithCardCountById(42L)).thenReturn(Optional.empty());
+    when(deckRepository.findWithCardCountById(42L, USER)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(() -> deckService.findById(42L))
+    assertThatThrownBy(() -> deckService.findById(42L, USER))
         .isInstanceOf(DeckNotFoundException.class)
         .hasMessageContaining("42");
   }
@@ -103,9 +111,9 @@ class DeckServiceTest {
     Deck deck = new Deck();
     deck.setId(7L);
     deck.setTitle("Колода");
-    when(deckRepository.findById(7L)).thenReturn(Optional.of(deck));
+    when(deckRepository.findByIdAndOwnerId(7L, USER)).thenReturn(Optional.of(deck));
 
-    assertThat(deckService.getExisting(7L)).isSameAs(deck);
+    assertThat(deckService.getExisting(7L, USER)).isSameAs(deck);
   }
 
   private static Deck deck(Long id, String title) {

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        Кто поставил оценку. Сейчас совпадает с владельцем колоды, но понадобится
+        для статистики и будущих общих колод.
+    -->
+    <changeSet id="008-review-user" author="vrazumi">
+        <addColumn tableName="review">
+            <column name="user_id" type="bigint"/>
+        </addColumn>
+
+        <sql>
+            UPDATE review r
+            SET user_id = d.owner_id
+            FROM card c JOIN deck d ON d.id = c.deck_id
+            WHERE c.id = r.card_id;
+        </sql>
+
+        <addNotNullConstraint tableName="review" columnName="user_id" columnDataType="bigint"/>
+        <addForeignKeyConstraint baseTableName="review" baseColumnNames="user_id"
+                                 constraintName="fk_review_user"
+                                 referencedTableName="app_user" referencedColumnNames="id"/>
+        <createIndex tableName="review" indexName="idx_review_user_id_card_id_reviewed_at">
+            <column name="user_id"/>
+            <column name="card_id"/>
+            <column name="reviewed_at"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

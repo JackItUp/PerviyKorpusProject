@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import ru.vrazumi.core.auth.CurrentUserId;
 import ru.vrazumi.core.card.dto.CardResponse;
 import ru.vrazumi.core.card.dto.CreateCardRequest;
 
@@ -43,8 +44,10 @@ public class CardController {
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @PostMapping
   public ResponseEntity<CardResponse> create(
-      @PathVariable Long deckId, @Valid @RequestBody CreateCardRequest request) {
-    CardResponse card = cardService.create(deckId, request);
+      @PathVariable Long deckId,
+      @Valid @RequestBody CreateCardRequest request,
+      @CurrentUserId Long userId) {
+    CardResponse card = cardService.create(deckId, request, userId);
     URI location =
         ServletUriComponentsBuilder.fromCurrentContextPath()
             .path("/api/cards/{cardId}")
@@ -60,7 +63,7 @@ public class CardController {
       description = "Колоды нет",
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   @GetMapping
-  public List<CardResponse> findByDeck(@PathVariable Long deckId) {
-    return cardService.findByDeck(deckId);
+  public List<CardResponse> findByDeck(@PathVariable Long deckId, @CurrentUserId Long userId) {
+    return cardService.findByDeck(deckId, userId);
   }
 }
