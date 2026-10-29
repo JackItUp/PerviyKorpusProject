@@ -41,7 +41,8 @@ public abstract class AbstractIntegrationTest {
   @BeforeEach
   void cleanDatabase() {
     jdbc.execute(
-        "TRUNCATE TABLE review, card, deck, refresh_token, app_user RESTART IDENTITY CASCADE");
+        "TRUNCATE TABLE review, card_option, card, deck, deck_group, refresh_token, app_user"
+            + " RESTART IDENTITY CASCADE");
   }
 
   /** Регистрирует пользователя и возвращает значение заголовка {@code Authorization}. */

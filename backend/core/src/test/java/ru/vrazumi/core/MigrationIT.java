@@ -37,7 +37,8 @@ class MigrationIT extends AbstractIntegrationTest {
             "007-deck-owner-column",
             "007-deck-owner-required",
             "008-review-user",
-            "009-card-options");
+            "009-card-options",
+            "010-deck-group");
   }
 
   @Test

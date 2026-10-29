@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -20,6 +21,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.vrazumi.core.deck.dto.CreateDeckRequest;
 import ru.vrazumi.core.deck.dto.DeckResponse;
+import ru.vrazumi.core.group.DeckGroup;
+import ru.vrazumi.core.group.DeckGroupNotFoundException;
+import ru.vrazumi.core.group.DeckGroupService;
 import ru.vrazumi.core.user.User;
 import ru.vrazumi.core.user.UserService;
 
@@ -28,6 +32,7 @@ class DeckServiceTest {
 
   @Mock private DeckRepository deckRepository;
   @Mock private UserService userService;
+  @Mock private DeckGroupService deckGroupService;
   @Spy private DeckMapper deckMapper = Mappers.getMapper(DeckMapper.class);
   @InjectMocks private DeckService deckService;
 
@@ -114,6 +119,44 @@ class DeckServiceTest {
     when(deckRepository.findByIdAndOwnerId(7L, USER)).thenReturn(Optional.of(deck));
 
     assertThat(deckService.getExisting(7L, USER)).isSameAs(deck);
+  }
+
+  @Test
+  void moveToGroupSetsGroupOfSameUser() {
+    Deck deck = deck(7L, "Колода");
+    DeckGroup group = new DeckGroup();
+    group.setId(3L);
+    when(deckRepository.findByIdAndOwnerId(7L, USER)).thenReturn(Optional.of(deck));
+    when(deckGroupService.getExisting(3L, USER)).thenReturn(group);
+    when(deckRepository.findWithCardCountById(7L, USER))
+        .thenReturn(Optional.of(new DeckWithCardCount(deck, 2L)));
+
+    DeckResponse response = deckService.moveToGroup(7L, 3L, USER);
+
+    assertThat(deck.getGroup()).isSameAs(group);
+    assertThat(response.groupId()).isEqualTo(3L);
+  }
+
+  @Test
+  void moveToNullGroupRemovesDeckFromGroup() {
+    Deck deck = deck(7L, "Колода");
+    deck.setGroup(new DeckGroup());
+    when(deckRepository.findByIdAndOwnerId(7L, USER)).thenReturn(Optional.of(deck));
+    when(deckRepository.findWithCardCountById(7L, USER))
+        .thenReturn(Optional.of(new DeckWithCardCount(deck, 0L)));
+
+    assertThat(deckService.moveToGroup(7L, null, USER).groupId()).isNull();
+    assertThat(deck.getGroup()).isNull();
+    verifyNoInteractions(deckGroupService);
+  }
+
+  @Test
+  void moveToForeignGroupThrowsNotFound() {
+    when(deckRepository.findByIdAndOwnerId(7L, USER)).thenReturn(Optional.of(deck(7L, "Колода")));
+    when(deckGroupService.getExisting(99L, USER)).thenThrow(new DeckGroupNotFoundException(99L));
+
+    assertThatThrownBy(() -> deckService.moveToGroup(7L, 99L, USER))
+        .isInstanceOf(DeckGroupNotFoundException.class);
   }
 
   private static Deck deck(Long id, String title) {

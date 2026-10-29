@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.vrazumi.core.common.AuditableEntity;
+import ru.vrazumi.core.group.DeckGroup;
 import ru.vrazumi.core.user.User;
 
 @Getter
@@ -38,4 +39,9 @@ public class Deck extends AuditableEntity {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "owner_id", nullable = false, updatable = false)
   private User owner;
+
+  /** Группа колоды или {@code null}, если колода вне групп. */
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "group_id")
+  private DeckGroup group;
 }

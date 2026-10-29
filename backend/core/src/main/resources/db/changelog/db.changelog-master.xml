@@ -18,5 +18,6 @@
     <include file="changes/007-deck-owner.xml" relativeToChangelogFile="true"/>
     <include file="changes/008-review-user.xml" relativeToChangelogFile="true"/>
     <include file="changes/009-card-options.xml" relativeToChangelogFile="true"/>
+    <include file="changes/010-deck-group.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

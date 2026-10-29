@@ -19,6 +19,8 @@ import ru.vrazumi.core.card.CardController;
 import ru.vrazumi.core.card.CardService;
 import ru.vrazumi.core.deck.DeckController;
 import ru.vrazumi.core.deck.DeckService;
+import ru.vrazumi.core.group.DeckGroupController;
+import ru.vrazumi.core.group.DeckGroupService;
 import ru.vrazumi.core.review.AnswerController;
 import ru.vrazumi.core.review.AnswerService;
 import ru.vrazumi.core.review.ReviewController;
@@ -32,7 +34,8 @@ import ru.vrazumi.core.study.StudyService;
   CardController.class,
   StudyController.class,
   ReviewController.class,
-  AnswerController.class
+  AnswerController.class,
+  DeckGroupController.class
 })
 class ApiRequiresTokenTest {
 
@@ -42,6 +45,7 @@ class ApiRequiresTokenTest {
   @MockitoBean private StudyService studyService;
   @MockitoBean private ReviewService reviewService;
   @MockitoBean private AnswerService answerService;
+  @MockitoBean private DeckGroupService deckGroupService;
 
   @ParameterizedTest
   @CsvSource({
@@ -52,7 +56,13 @@ class ApiRequiresTokenTest {
     "GET, /api/decks/1/cards",
     "GET, /api/decks/1/study",
     "POST, /api/cards/1/review",
-    "POST, /api/cards/1/answer"
+    "POST, /api/cards/1/answer",
+    "PUT, /api/decks/1/group",
+    "GET, /api/groups",
+    "POST, /api/groups",
+    "GET, /api/groups/1",
+    "PUT, /api/groups/1",
+    "DELETE, /api/groups/1"
   })
   void requestWithoutTokenIsUnauthorized(String method, String uri) throws Exception {
     mvc.perform(
@@ -68,6 +78,7 @@ class ApiRequiresTokenTest {
 
   @AfterEach
   void servicesAreNotCalled() {
-    verifyNoInteractions(deckService, cardService, studyService, reviewService, answerService);
+    verifyNoInteractions(
+        deckService, cardService, studyService, reviewService, answerService, deckGroupService);
   }
 }

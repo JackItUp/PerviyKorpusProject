@@ -10,8 +10,10 @@ public interface DeckMapper {
 
   @Mapping(target = "id", ignore = true)
   @Mapping(target = "owner", ignore = true)
+  @Mapping(target = "group", ignore = true)
   Deck toEntity(CreateDeckRequest request);
 
   @Mapping(target = "cardCount", source = "cardCount")
+  @Mapping(target = "groupId", source = "deck.group.id")
   DeckResponse toResponse(Deck deck, long cardCount);
 }

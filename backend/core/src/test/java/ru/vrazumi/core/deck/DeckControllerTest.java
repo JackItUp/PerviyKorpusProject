@@ -181,6 +181,6 @@ class DeckControllerTest {
   }
 
   private static DeckResponse deck(Long id, String title, long cardCount) {
-    return new DeckResponse(id, title, null, cardCount, NOW, NOW);
+    return new DeckResponse(id, title, null, null, cardCount, NOW, NOW);
   }
 }

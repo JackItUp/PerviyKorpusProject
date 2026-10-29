@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.vrazumi.core.deck.dto.CreateDeckRequest;
 import ru.vrazumi.core.deck.dto.DeckResponse;
+import ru.vrazumi.core.group.DeckGroupService;
 import ru.vrazumi.core.user.UserService;
 
 /**
@@ -19,6 +20,7 @@ public class DeckService {
   private final DeckRepository deckRepository;
   private final DeckMapper deckMapper;
   private final UserService userService;
+  private final DeckGroupService deckGroupService;
 
   @Transactional
   public DeckResponse create(CreateDeckRequest request, Long userId) {
@@ -38,6 +40,14 @@ public class DeckService {
         .findWithCardCountById(deckId, userId)
         .map(this::toResponse)
         .orElseThrow(() -> new DeckNotFoundException(deckId));
+  }
+
+  /** Переносит колоду в группу пользователя или убирает из группы ({@code groupId == null}). */
+  @Transactional
+  public DeckResponse moveToGroup(Long deckId, Long groupId, Long userId) {
+    Deck deck = getExisting(deckId, userId);
+    deck.setGroup(groupId == null ? null : deckGroupService.getExisting(groupId, userId));
+    return findById(deckId, userId);
   }
 
   /** Колода пользователя для других фич (карточки, изучение). Бросает 404, если её нет. */
