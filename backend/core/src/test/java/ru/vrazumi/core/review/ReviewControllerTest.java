@@ -16,16 +16,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import ru.vrazumi.core.WebLayerTest;
 import ru.vrazumi.core.card.CardNotFoundException;
 import ru.vrazumi.core.review.dto.CreateReviewRequest;
 import ru.vrazumi.core.review.dto.ReviewResponse;
 
-@WebMvcTest(ReviewController.class)
+@WebLayerTest(ReviewController.class)
 class ReviewControllerTest {
 
   private static final Instant NOW = Instant.parse("2026-10-01T09:40:00Z");

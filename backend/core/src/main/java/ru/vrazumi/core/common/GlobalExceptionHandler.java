@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -35,6 +37,25 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
   public ProblemDetail handleNotFound(NotFoundException ex) {
     ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     problem.setTitle("Не найдено");
+    return problem;
+  }
+
+  @ExceptionHandler(UnauthorizedException.class)
+  public ProblemDetail handleUnauthorized(UnauthorizedException ex) {
+    return unauthorized(ex.getMessage());
+  }
+
+  /** Например, контроллер запросил текущего пользователя, а токена нет. */
+  @ExceptionHandler(AuthenticationException.class)
+  public ProblemDetail handleAuthentication(AuthenticationException ex) {
+    return unauthorized("Требуется авторизация: передайте access-токен.");
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+    ProblemDetail problem =
+        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Недостаточно прав.");
+    problem.setTitle("Доступ запрещён");
     return problem;
   }
 
@@ -120,6 +141,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         badRequest(
             "Параметр '%s' имеет недопустимое значение '%s'.".formatted(name, ex.getValue()));
     return handleExceptionInternal(ex, problem, headers, status, request);
+  }
+
+  private static ProblemDetail unauthorized(String detail) {
+    ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, detail);
+    problem.setTitle("Не авторизован");
+    return problem;
   }
 
   private static ProblemDetail badRequest(String detail) {

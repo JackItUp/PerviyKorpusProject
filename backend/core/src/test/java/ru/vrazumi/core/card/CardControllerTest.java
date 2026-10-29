@@ -15,15 +15,15 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import ru.vrazumi.core.WebLayerTest;
 import ru.vrazumi.core.card.dto.CardResponse;
 import ru.vrazumi.core.deck.DeckNotFoundException;
 
-@WebMvcTest(CardController.class)
+@WebLayerTest(CardController.class)
 class CardControllerTest {
 
   private static final Instant NOW = Instant.parse("2026-10-01T09:35:00Z");

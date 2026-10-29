@@ -14,5 +14,6 @@
 
     <!-- Спринт 2: пользователи -->
     <include file="changes/005-create-app-user.xml" relativeToChangelogFile="true"/>
+    <include file="changes/006-create-refresh-token.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

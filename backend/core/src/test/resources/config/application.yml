@@ -1,0 +1,4 @@
+# Только для тестов: Spring Boot читает config/application.yml поверх основного application.yml
+app:
+  jwt:
+    secret: test-only-secret-key-for-jwt-signing-0123456789

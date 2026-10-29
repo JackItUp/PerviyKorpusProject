@@ -9,15 +9,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.vrazumi.core.WebLayerTest;
 import ru.vrazumi.core.card.CardType;
 import ru.vrazumi.core.deck.DeckNotFoundException;
 import ru.vrazumi.core.study.dto.StudyCardResponse;
 import ru.vrazumi.core.study.dto.StudySessionResponse;
 
-@WebMvcTest(StudyController.class)
+@WebLayerTest(StudyController.class)
 class StudyControllerTest {
 
   @Autowired private MockMvc mvc;

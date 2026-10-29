@@ -29,7 +29,11 @@ class MigrationIT extends AbstractIntegrationTest {
 
     assertThat(ids)
         .containsExactly(
-            "001-create-deck", "002-create-card", "003-create-review", "005-create-app-user");
+            "001-create-deck",
+            "002-create-card",
+            "003-create-review",
+            "005-create-app-user",
+            "006-create-refresh-token");
   }
 
   @Test
